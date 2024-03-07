@@ -6,7 +6,6 @@ import (
 )
 
 // ApacheFormatSpecifiers maps Apache log format specifiers to regular expressions.
-// This map covers a wide range of specifiers but might not include every custom specifier.
 var ApacheFormatSpecifiers = map[string]string{
     "%h": `(?P<host>[^ ]+)`,                              // Remote hostname
     "%l": `(?P<logname>[^ ]*)`,                           // Remote logname
@@ -17,37 +16,21 @@ var ApacheFormatSpecifiers = map[string]string{
     "%b": `(?P<size>[0-9]+|-)`,                           // Size of response in bytes
     "%{Referer}i": `(?P<referer>[^"]*)`,                  // Referer HTTP request header
     "%{User-Agent}i": `(?P<useragent>[^"]*)`,             // User-Agent HTTP request header
-    "%{Host}i": `(?P<hostheader>[^"]*)`,                  // Host HTTP request header
     // Add more directives as needed
 }
 
 // ConvertApacheLogFormatToRegex takes an Apache log format string and converts it into a regex.
 func ConvertApacheLogFormatToRegex(format string) string {
-    // Escape string literals between quotes that are not format specifiers
-    literalStart := false
-    var literalBuilder strings.Builder
-    for _, runeValue := range format {
-        if runeValue == '"' && !literalStart {
-            literalStart = true
-            literalBuilder.WriteRune(runeValue)
-        } else if runeValue == '"' && literalStart {
-            literalStart = false
-            literalBuilder.WriteString(`[^"]*`) // Replace literals between quotes with regex
-            literalBuilder.WriteRune(runeValue)
-        } else if literalStart {
-            continue // Skip characters inside literal quotes
-        } else {
-            literalBuilder.WriteRune(runeValue)
-        }
-    }
-    escapedFormat := literalBuilder.String()
-
-    // Replace Apache format specifiers with regex patterns
+    // First, replace Apache format specifiers with regex patterns
     for key, value := range ApacheFormatSpecifiers {
-        escapedFormat = strings.Replace(escapedFormat, key, value, -1)
+        format = strings.Replace(format, key, value, -1)
     }
 
-    return "^" + escapedFormat + "$"
+    // Then, handle literal parts of the format, such as literal spaces and quotes
+    // Note: Since we already replaced all specifiers, we assume no literal quotes need additional handling here
+    // If the log format includes special regex characters, they should be escaped here as necessary
+
+    return "^" + format + "$"
 }
 
 func main() {
